@@ -8,9 +8,13 @@ type
   TreeNodeObj = object
     parent: TreeNode
     children: seq[TreeNode]
+    data: tuple[name: string, attrs: seq[string]]
 
 proc add(root: var TreeNode, node: TreeNode): =
   root.children.add(node)
+
+proc buildTree(root: var TreeNode, x: var XmlParser): =
+  discard
 
 proc skipUntilXmlClose(x: var XmlParser): bool = 
   while true:
