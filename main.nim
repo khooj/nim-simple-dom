@@ -8,73 +8,71 @@ type
   TreeNodeObj = object
     parent: TreeNode
     children: seq[TreeNode]
-    data: tuple[name: string, attrs: seq[string]]
+    data: tuple[name: string, attrs: seq[tuple[attr: string, value: string]]]
 
-proc add(root: var TreeNode, node: TreeNode): =
+proc add(root: var TreeNode, node: TreeNode) =
   root.children.add(node)
 
-proc buildTree(root: var TreeNode, x: var XmlParser): =
-  discard
-
-proc skipUntilXmlClose(x: var XmlParser): bool = 
+proc buildTree(root: var TreeNode, x: var XmlParser, parentTag: string) =
+  var node = root
+  var name = ""
+  var child: TreeNode
   while true:
-    x.next()
     case x.kind:
-    of xmlError: return false
-    of xmlEof: return false
-    of xmlElementClose: return true
-    else: discard
-
-proc processATag(x: var XmlParser, l: var seq[string]): bool =
-  while true:
-    x.next()
-    if x.kind == xmlAttribute:
-      if x.attrKey =?= "title":
-        if x.attrValue != nil: l.add(x.attrValue)
-        return true
-    elif x.kind == xmlElementClose:
-      return true
-
-proc rewindDivUntilClass(x: var XmlParser): bool =
-  while true:
-    x.next()
-    if x.kind == xmlAttribute:
-      if x.attrKey =?= "class":
-        return true
-
-proc searchTag(x: var XmlParser, tag: string): bool=
-  while true:
-    x.next()
-    case x.kind:
+    of xmlElementClose:
+      x.next()
+      buildTree(child, x, name)
     of xmlElementOpen:
-      if x.elementName =?= tag:
-        return true
-    of xmlError: return false
-    of xmlEof: return false
+      name = x.elementName
+      child = TreeNode(parent: node, children: @[], data: (name: x.elementName, attrs: @[]))
+      node.add(child)
+      while x.kind != xmlElementClose:
+        x.next()
+        if x.kind == xmlAttribute:
+          child.data.attrs.add((x.attrKey, x.attrValue))
+      x.next()
+    of xmlElementStart:
+      name = x.elementName
+      child = TreeNode(parent: node, children: @[], data: (name: x.elementName, attrs: @[]))
+      node.add(child)
+      x.next()
+      buildTree(child, x, name)
+    of xmlElementEnd: 
+      if x.elementName == parentTag:
+        return
+      x.next()
+    of xmlError:
+      echo(x.errorMsg())
+      x.next()
+    of xmlEof: return
+    else: x.next()
+
+proc traverseTree(root: TreeNode, lvl: int) =
+  for i in 0..high(root.children):
+    var node = root.children[i]
+    echo(repeat(' ', lvl) & node.data.name)
+    traverseTree(node, lvl+1)
 
 if paramCount() < 1:
   quit("Need more args")
 
-var links: seq[string]
-var html = getContent(paramStr(1))
+#var html = getContent(paramStr(1))
+var html = """
+<html>
+<head>
+<script href="some javascript">some data</script>
+<link href="asd"/>
+</head>
+<body>
+<div><a href="asd"></a><a href="seconda"></a></div><div><img src="asdasdasd"></div>
+</body>
+</html>
+"""
 var s = newStringStream(html)
 var x: XmlParser
+var root: TreeNode = TreeNode(children: @[])
 open(x, s, paramStr(1))
-links = @[]
-block mainLoop:
-  while true:
-    x.next()
-    case x.kind:
-    of xmlElementOpen:
-      if x.elementName =?= "div":
-        if rewindDivUntilClass(x):
-          if x.attrValue =?= "post_image_block":
-            if not searchAndProcessATag(x, links): break mainLoop
-            x.next()
-    of xmlEof: break
-    of xmlError:
-      echo(errorMsg(x))
-    else: x.next()
-
-echo(links)
+x.next()
+buildTree(root, x, "")
+traverseTree(root, 0)
 x.close()
