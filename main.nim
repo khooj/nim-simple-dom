@@ -4,11 +4,12 @@ proc `=?=` (a, b: string): bool =
   return cmpIgnoreCase(a, b) == 0
 
 type
+  Attribute = tuple[attr: string, value: string]
   TreeNode = ref TreeNodeObj
   TreeNodeObj = object
     parent: TreeNode
     children: seq[TreeNode]
-    data: tuple[name: string, attrs: seq[tuple[attr: string, value: string]]]
+    data: tuple[name: string, attrs: seq[Attribute]]
 
 proc add(root: var TreeNode, node: TreeNode) =
   root.children.add(node)
@@ -46,11 +47,15 @@ proc buildTree(root: var TreeNode, x: var XmlParser, parentTag: string) =
       x.next()
     of xmlEof: return
     else: x.next()
+proc printAttrs(node: TreeNode): string=
+  result = ""
+  for i in 0..high(node.data.attrs):
+    result &= node.data.attrs[i].attr & node.data.attrs[i].value
 
 proc traverseTree(root: TreeNode, lvl: int) =
   for i in 0..high(root.children):
     var node = root.children[i]
-    echo(repeat(' ', lvl) & node.data.name)
+    echo(repeat(' ', lvl) & printAttrs(node))
     traverseTree(node, lvl+1)
 
 if paramCount() < 1:
