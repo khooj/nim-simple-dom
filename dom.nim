@@ -1,4 +1,4 @@
-import parsexml, streams, strutils
+import parsexml, streams, strutils, queues
 
 type
   Attribute = tuple[attr: string, value: string]
@@ -11,7 +11,33 @@ type
 proc add*(root: var TreeNode, node: TreeNode) =
   root.children.add(node)
 
+proc bfs(root: TreeNode, cmp: proc(node: TreeNode): bool): TreeNode =
+  var queue = initQueue[TreeNode]()
+  queue.add(root)
+  var currentNode = queue.dequeue()
+  while true:
+    if cmp(currentNode):
+      return currentNode
+    for i in 0..high(currentNode.children):
+      queue.add(currentNode.children[i])
+    try:
+      currentNode = queue.dequeue()
+    except:
+      return root
+
 var recursionlvl: int = 0
+
+proc getElementByName*(root: TreeNode, name: string): TreeNode =
+  var node = bfs(root, proc(n: TreeNode): bool =
+    if n.data.name == name:
+      return true
+    else:
+      return false
+    )
+  if node != root:
+    return node
+  else:
+    return root
 
 proc processCharData(x: var XmlParser): string =
   result = ""
@@ -27,7 +53,7 @@ proc processCharData(x: var XmlParser): string =
 
 proc isCouldClose(tag: string): bool =
   case tag:
-  of "meta", "link", "hr", "input", "param", "source", "img", "br": return false
+  of "meta", "link", "hr", "input", "param", "source", "img", "br", "base": return false
   else: return true
 
 proc buildTree(root: var TreeNode, x: var XmlParser, parentTag: string = nil) =

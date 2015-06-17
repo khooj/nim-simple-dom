@@ -6,3 +6,5 @@ if paramCount() < 1:
 var html = getContent(paramStr(1))
 var root: TreeNode = parseHtml(html)
 printTree(root)
+var elem = root.getElementByName("div")
+echo(repr(elem))
