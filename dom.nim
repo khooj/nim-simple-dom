@@ -25,16 +25,29 @@ proc bfs(root: TreeNode, cmp: proc(node: TreeNode): bool): TreeNode =
     except:
       return root
 
-var recursionlvl: int = 0
-
 proc getElementByName*(root: TreeNode, name: string): TreeNode =
-  return bfs(root, proc(n: TreeNode): bool {.closure.} =
-    echo(name, ' ', n.data.name)
+  return bfs(root, proc(n: TreeNode): bool =
     if n.data.name == name:
       return true
     else:
       return false
     )
+
+proc getElementById*(root: TreeNode, id: string): TreeNode =
+  return bfs(root, proc(n: TreeNode): bool =
+    for i in 0..high(n.data.attrs):
+      if n.data.attrs[i].attr == "id" and n.data.attrs[i].value == id:
+        return true
+    return false
+  )
+
+proc getElementByClass*(root: TreeNode, class: string): TreeNode =
+  return bfs(root, proc(n: TreeNode): bool =
+    for i in 0..high(n.data.attrs):
+      if n.data.attrs[i].attr == "class" and n.data.attrs[i].value == class:
+        return true
+    return false
+  )
 
 proc processCharData(x: var XmlParser): string =
   result = ""
@@ -54,8 +67,6 @@ proc isCouldClose(tag: string): bool =
   else: return true
 
 proc buildTree(root: var TreeNode, x: var XmlParser, parentTag: string = nil) =
-  inc(recursionlvl)
-  #echo("called buildTree (parent tag is" & parentTag & ')' & $recursionlvl)
   var node = root
   var name = ""
   var child: TreeNode
@@ -94,7 +105,6 @@ proc buildTree(root: var TreeNode, x: var XmlParser, parentTag: string = nil) =
 
     of xmlElementEnd:
       if parentTag != nil and x.elementName == parentTag:
-        dec(recursionlvl)
         return
       x.next()
 
@@ -106,7 +116,6 @@ proc buildTree(root: var TreeNode, x: var XmlParser, parentTag: string = nil) =
       x.next()
 
     of xmlEof:
-      dec(recursionlvl)
       return
     else: x.next()
 
