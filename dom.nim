@@ -11,10 +11,15 @@ type
 proc add*(root: var TreeNode, node: TreeNode) =
   root.children.add(node)
 
+proc searchAttr*(node: TreeNode, attr: string): string =
+  for i in 0..high(node.data.attrs):
+    if node.data.attrs[i].attr == attr:
+      return node.data.attrs[i].value
+  return ""
+
 proc bfs(root: TreeNode, cmp: proc(node: TreeNode): bool): TreeNode =
   var queue = initQueue[TreeNode]()
-  queue.add(root)
-  var currentNode = queue.dequeue()
+  var currentNode = root
   while true:
     if cmp(currentNode):
       return currentNode
@@ -35,19 +40,38 @@ proc getElementByName*(root: TreeNode, name: string): TreeNode =
 
 proc getElementById*(root: TreeNode, id: string): TreeNode =
   return bfs(root, proc(n: TreeNode): bool =
-    for i in 0..high(n.data.attrs):
-      if n.data.attrs[i].attr == "id" and n.data.attrs[i].value == id:
-        return true
+    var attr = n.searchAttr("id")
+    if attr != "" and attr == id:
+      return true
     return false
   )
 
 proc getElementByClass*(root: TreeNode, class: string): TreeNode =
   return bfs(root, proc(n: TreeNode): bool =
-    for i in 0..high(n.data.attrs):
-      if n.data.attrs[i].attr == "class" and n.data.attrs[i].value == class:
-        return true
+    var attr = n.searchAttr("class")
+    if attr != "" and attr == class:
+      return true
     return false
   )
+
+proc getElementsByName*(root: TreeNode, name: string): seq[TreeNode] =
+  var elems: seq[TreeNode] = @[]
+  discard bfs(root, proc(n: TreeNode): bool =
+    if n.data.name == name:
+      elems.add(n)
+    return false
+  )
+  return elems
+
+proc getElementsByClass*(root: TreeNode, class: string): seq[TreeNode] =
+  var elems: seq[TreeNode] = @[]
+  discard bfs(root, proc(n: TreeNode): bool =
+    var attr = n.searchAttr("class")
+    if attr != "" and attr == class:
+      elems.add(n)
+    return false
+  )
+  return elems
 
 proc processCharData(x: var XmlParser): string =
   result = ""
