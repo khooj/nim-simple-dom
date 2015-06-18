@@ -28,16 +28,13 @@ proc bfs(root: TreeNode, cmp: proc(node: TreeNode): bool): TreeNode =
 var recursionlvl: int = 0
 
 proc getElementByName*(root: TreeNode, name: string): TreeNode =
-  var node = bfs(root, proc(n: TreeNode): bool =
+  return bfs(root, proc(n: TreeNode): bool {.closure.} =
+    echo(name, ' ', n.data.name)
     if n.data.name == name:
       return true
     else:
       return false
     )
-  if node != root:
-    return node
-  else:
-    return root
 
 proc processCharData(x: var XmlParser): string =
   result = ""
